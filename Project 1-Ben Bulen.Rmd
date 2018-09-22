@@ -1,0 +1,155 @@
+---
+  title: "BIOS 611 Project 1"
+  author: "(Benjamin Bulen)"
+  date: "`r format(Sys.time(), '%m/%d/%Y')`"
+  output: html_document
+---
+
+  This project is due `Monday September 24th by 6pm`.  
+  Both `.Rmd` and `.html` files should be submitted.  
+  (In the setting of a blog post create 4 different figures from datasets in R)
+  
+    ```{r, include = FALSE}
+    library(tidyverse)
+    ```
+    # Dataset 1: USArrests
+    ```{r}
+USArrests$state <- rownames(USArrests)
+arrests <- as_tibble(USArrests)
+
+max.murder=arrange(arrests,desc(Murder))
+max.assault=arrange(arrests,desc(Assault))
+max.rape=arrange(arrests,desc(Rape))
+max.pop=arrange(arrests,desc(UrbanPop))
+
+low.murder=arrange(arrests,Murder)
+low.assault=arrange(arrests,Assault)
+low.rape=arrange(arrests,Rape)
+low.pop=arrange(arrests,UrbanPop)
+
+
+top_value <- rbind(max.murder[1,], low.murder[1,], max.assault[1,], low.assault[1,], max.rape[1,], low.rape[1,], max.pop[1,], low.pop[1,])
+
+cor <- cor(arrests[,1:4], method="pearson")
+#cor
+```
+
+```{r}
+      ggplot() + 
+      geom_point(data=arrests, mapping = aes(x = Assault, y = Murder, alpha=UrbanPop)) +
+      geom_smooth(data=arrests,mapping = aes(x = Assault, y = Murder), se=FALSE) +              annotate("text", x=125, y=25, label= "Max Assault:North Carolina=337 per 100,000") +
+      annotate("text", x=110, y=23, label = "Max Murder: Georgia=17.4 per 100,00") +
+      ggtitle("Scatterplot of the Murder and Assault Arrests (per 100,000) in 1973 America")+
+      labs(x = "Assault Rate", y="Murder Rate")
+```
+
+```{r}
+usmap::plot_usmap(data = USArrests, values = "Murder", lines = "red") + 
+  scale_fill_continuous(low = "white", high = "red", name = "USA Murder 1973", label = scales::comma) + 
+  theme(legend.position = "right") +
+  labs(title="Murder Rate in the USA in 1973 by State")
+```
+
+US Arrests dataset in R (World Almanac and Book of facts 1975) contains statistics for the 50 US states in 1973. Murder, assault, and rape are all presented as arrests per 100,000 residents. There is also a percentage given to quantify the population living in urban areas for each state. I initially thought states with higher urban populations would have higher crime rates across all categores. While this is somewhat true the correlation is not nearly as strong as I anticipated. Urban population was most highly correlated with rape at 0.4113. The highest correlation 0.8 between assuault and murder arrests. The first plot shows this association in a scatterplot, as a positive trend can be seen. The urban population was also included as shading in each point and we can see very little trend between urbabn populatino percentages with murder and assault. High percentage urban states as well as low percentage urban states have high murder and assault arrests. North Carolina had the highest assault arrests at 337 per 100,000 while North Dakota had the lowest rate of arrests at 45 per 100,000. Georgia had the highest arrest rate for murder at 17.4 per 100,000 residents and North Dakota also had the lowest arrest rate for murders at 0.8 per 100,000 residents. With state data I had to investigate mapping data to the USA map. Interestingly, from this map we can see the Southeast USA has a higher concentration of murder arrests than other sections of the country.
+
+As a next step it would be interesting to look at number of total murders, assaults and rapes committed in each state. This data looks at arrests made for each crime but the overall rates of crime might differ and provide a different insight to crime for each state.
+
+```{r}
+plant<- as_tibble(PlantGrowth)
+
+plant %>% 
+   group_by(group) %>%
+   summarize(Mean = mean(weight, na.rm=TRUE), minimum=min(weight), maximum=max(weight))
+
+fit <- anova(lm(weight ~ group, data=plant))
+#fit
+
+ctrl <- filter(plant, group == "ctrl")
+trt1 <- filter(plant, group == "trt1")
+trt2 <- filter(plant, group == "trt2")
+
+test_trt1 <- t.test(ctrl$weight, trt1$weight)
+test_trt2 <- t.test(ctrl$weight, trt2$weight)
+test_trt3 <- t.test(trt1$weight, trt2$weight)
+#test_trt1
+#test_trt2
+#test_trt3
+```
+```{r}
+library(ggsignif)
+
+plant %>%
+ggplot(aes(x=group, y=weight, fill=group)) +
+    geom_boxplot(alpha=0.5) +
+    stat_summary(fun.y=mean, geom="point", shape=20, size=5, color="blue", fill="white") +
+    scale_fill_brewer(palette="Set2")+
+    ggtitle("Boxplot of Plant Weight Data")+
+    labs(x = "Treatment", y="Weight")+
+    geom_signif(comparisons = list(c("ctrl", "trt2")), test="t.test" ,
+              map_signif_level=TRUE) +
+    geom_signif(comparisons = list(c("trt1", "trt2")), test="t.test" ,
+              map_signif_level=TRUE)
+    
+```
+
+The dataset "PlantGrowth" in R is from Dobson, A. J. (1983) An Introduction to Statistical Modelling. London: Chapman and Hall. The data contains three treatment groups (control, treatment 1 and treatment 2) and corresponding dry plant weights for 30 plants. The mean weights are 5.03, 4.66 and 5.53 for the control, treatment 1, treatment 2 groups, respectively. This dataset lends itself to testing group means to see if there is a treatment effect. Running an ANOVA model testing if the mean weight across the three treatment groups is the same produces a significant result. Thus at least one of the treatment group means is significantly different from the others. Performing a few post-hoc t-tests we see that the group means between the control group and treatment 2 are significantly different (shown as "*"). Similarly, the group means between treatment 1 and treatment 2 are significantly different (shown as "**""). Looking at the boxplot we can see this trend. Treatment 2 clearly has the heaviest plants. Interestingly, the difference between treatment 1 plants and treatment 2 plants is greater than the difference between either treatment and control.
+
+As a follow up to this analysis I think it would be interesting to apply these treatments to different types of plants to see if the same results are produced. I am also interested in know if the treatments were the same "drug" or different concentrations. It would also be interesting to extend the experiment to multiple treatments.
+
+```{r}
+orange <- as_tibble(Orange)
+orange$order <- ""
+orange$order[orange$Tree==1] <- "1"
+orange$order[orange$Tree==2] <- "2"
+orange$order[orange$Tree==3] <- "3"
+orange$order[orange$Tree==4] <- "4"
+orange$order[orange$Tree==5] <- "5"
+
+orange2 <- orange %>%
+  group_by(Tree) %>%
+  mutate(growth = circumference - first(circumference), growth_percent = growth/first(circumference) * 100, year=age/365)
+
+ggplot(data=orange2,mapping=aes(x=year, y=growth_percent),order = order) +
+    geom_point(mapping=aes(color=order)) +
+    geom_line(mapping=aes(group=order), alpha=0.3, linetype=3)+
+    labs(x = "Year", y="Growth (%)")+
+    ggtitle("Longitudinal Line Plot for Percent Growth of Orange Trees over Time")
+```
+
+The dataset "Orange" in R is from Draper, N. R. and Smith, H. (1998), Applied Regression Analysis (3rd ed), Wiley (exercise 24.N). The data contains longitudinal data for orange tree circumference growth over time. There are 5 trees in the dataset, their age is recorded since 12/31/1968 along with the trees circumference in mm. The maximum percent growth from baseline over 4 years was 568% growth. The least growth seen over the same time period was 367% growth from baseline. We can see from the line plot that trees 5, 2, and 4 tend to have a higher rate of growth compared to trees 1 and 3. This is realized both by the higher slope in the plot and also the ending overall percent growth.
+
+I would like to further investigate this dataset by considering region. It would be interesting to see if these trees were in the same grove or in different parts of the world. Weather and soil conditions would play a large role in the growth of these trees so if they are located in different areas we might expect different growth rates. 
+
+```{r}
+faith <- as_tibble(faithful)
+
+cor <- cor(faith[,1:2], method="pearson")
+
+#ggplot(data=faith, mapping=aes(x = waiting)) + geom_density()
+#ggplot(data=faith, mapping=aes(x = eruptions)) + geom_density()
+
+faith$group[faith$eruptions>3] <- ">3 minute eruption"
+faith$group[faith$eruptions<=3] <- "le 3 minute eruption"
+
+faith %>% 
+  group_by(group)%>%
+   summarize(erupt = mean(eruptions, na.rm=TRUE), wait=mean(waiting, na.rm=TRUE))
+
+group1 <- filter(faith, group == ">3 minute eruption")
+group2 <- filter(faith, group == "le 3 minute eruption")
+
+test <- t.test(group1$waiting, group2$waiting)
+test
+
+
+```
+```{r}
+  ggplot(data = faith, mapping = aes(x = waiting, y = eruptions, color = group)) + 
+      geom_point() + 
+      geom_smooth(mapping = aes(x = waiting, y = eruptions, linetype = group), se=FALSE)+
+      labs(x = "Waiting Time (mins)", y="Eruption Time (mins)")+
+      ggtitle("Old Faithful: Time between Eruptions and the Corresponding Eruption Length")
+```
+The dataset "faithful" in R is from Härdle, W. (1991). Smoothing Techniques with Implementation in S. New York: Springer. This data surprised me a bit. I did not expect to see such a bimodal distribution between waiting time and eruption length. The mean waiting time for eruptions lasting longer than 3 minutes was about 80 minutes. The mean waiting time for eruptions lasting less than 3 minutes was about 54 minutes. It is clear in the plot that Old Faithful really has 2 distinct types of eruptions. Thinking about this data retrospectively it makes sense that as time passes without an eruption there will be more pressure built up in the geyser that results in a longer eruption. Not surprisingly, the mean waiting time between eruptions lasting more than 3 minutes is significantly different than the mean waiting time for eruptions lasting less than 3 minutes.
+
+I think interesting follow-up to this data would be looking at eruption heights. This would lend some information to volume ejected from the geyser as well. But I would be interested in seeing if longer wait times are associated with higher geyser eruptions.
